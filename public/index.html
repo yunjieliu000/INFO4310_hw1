@@ -1,232 +1,635 @@
 <html>
-
 <head>
-
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://d3js.org/topojson.v3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.13.0/d3-legend.js"></script>
-
-    <style>
-        /* .neighborhood{
-            fill: pink;
-        } */
-        /* .neighborhoords_mesh{
-            stroke: white;
-        } */
-        .state {
-            fill: grey;
-        }
-
-        .outline {
-            fill: none;
-            stroke: grey;
-            stroke-width: 1px;
-        }
-
-        .gridlines .domain {
-            stroke: none;
-        }
-
-        .gridlines line {
-            stroke: #bbb;
-        }
-
-        .bar{
-            display: flex;
-            flex-direction: row;
-        }
-
-        .bar_dpw{
-            color: aqua;
-        }
-
-        .labels{
-            font-style: italic;
-        }
-
-        .main{
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* .neighborhood{
-            stroke-width: 100px;
-        } */
-    </style>
-
+  <title>INFO 3300 - Data-driven Web Pages - Fall, 2022</title>
+  <link href="https://fonts.googleapis.com/css?family=Lato:400,700|Raleway:400,700" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="css/normalize.css">
+  <link rel="stylesheet" type="text/css" href="css/skeleton.css">
+  <link rel="stylesheet" type="text/css" href="css/custom-style.css">
+  <meta charset="utf-8">
 </head>
-
 <body>
-    <div class = 'main'>
-    <h3>Map of SF Trees (Private vs. DPW Owned)</h3>
-    <p id="p1">
-        <svg id="choropleth" height="700" width="700"></svg>
-        <!-- private: 6364; DPW: 2603 -->
-        <script id="notes1">
-
-          const map = d3.select("#choropleth");
-          const width_map = map.attr("width");
-          const height_map = map.attr("height");
-          const margin = { top: 20, right: 20, bottom: 20, left: 20 };
-          const mapWidth = width_map - margin.left - margin.right;
-          const mapHeight = height_map - margin.top - margin.bottom;
-          const map_area = map.append("g")
-              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-
-          const requestData = async function() {
-
-            const sf = await d3.json("./SF-Neighborhoods.geo.json");
-            console.log(sf);
-            var neighborhoods = topojson.feature(sf, sf.objects.SFNeighborhoods);
-            const neightborhoods_mesh = topojson.mesh(sf,sf.objects.SFNeighborhoods);
-            var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], neighborhoods);
-            var path = d3.geoPath().projection(projection);
-            const color = d3.scaleOrdinal(d3.schemeCategory10);
-
-            map_area.selectAll("path.neighborhood").data(neighborhoods.features)
-                .join("path")
-                .attr("class", "neighborhood")
-                .attr("d", path)
-            
-            // map_area.append("path")
-            //     .datum(neightborhoods_mesh)
-            //     .attr("class", "street_outline")
-            //     .attr('d',path)
-
-            const trees = await d3.csv("tree_data.csv");
-            trees.forEach( d => 
-                { d.Position = projection( [d.longitude, d.latitude] );
-            });
-            map_area.selectAll("circle").data(trees)
-                .join("circle")
-                .attr("r", 2)
-                .attr("fill", d => color(d.qcaretaker))
-                .attr("opacity", 0.4)
-                .attr("cx", d => d.Position[0])
-                .attr("cy", d => d.Position[1]);
-        }
-
-        requestData();
-
-
-        </script>
-      </p>
-      <h3>Stacked Bar Chart for Private vs. DPW Owned Trees </h3>
-        <p id="p3">
-            <svg id="bar" height="600" width="600"></svg>
-                <script>
-
-                    const bar = d3.select("#bar");
-                    const width_bar = bar.attr('width');
-                    const height_bar = bar.attr('height');
-                    const margins_bar = { top: 100, right: 30, bottom: 40, left: 40 };
-                    const chartWidth_bar = width_bar - margins_bar.left - margins_bar.right;
-                    const chartHeight_bar = height_bar - margins_bar.top - margins_bar.bottom;
-                    let annotations_bar = bar.append("g").attr("id", "annotations");
-                    let chartArea_bar = bar.append('g')
-                        .attr('transform', `translate(${margins_bar.left},${margins_bar.top})`);
-
-
-
-                    const requestData_bar = async function () {
-
-                        const dpw = await d3.csv("dpw.csv", d3.autoType);
-                        const private = await d3.csv("private.csv", d3.autoType);
-
-                        console.log(dpw);
-                        console.log(private);
-
-                        const dpw_count = d3.map(dpw, d => d.count1);
-                        const private_count = d3.map(private, d => d.count1);
-                        var total_count = [[]];
-                        for (let i = 0; i < dpw.length; i++){
-                            console.log(dpw[i].qspecies)
-                            let this_count = []
-                            this_count['qspecies'] = dpw[i].qspecies;
-                            this_count['dpw'] = dpw[i].count1;
-                            this_count['total'] = dpw_count[i] + private_count[i];
-                            this_count['private'] = private_count[i];
-                            total_count[i] = this_count;
-                        }
-                        console.log(dpw_count);
-                        console.log(private_count);
-                        console.log(total_count);
-
-                        const species = d3.map(dpw, d => d.qspecies)
-                        
-                        const xScale = d3.scaleBand()
-                            .domain(species)
-                            .range([0, chartWidth_bar])
-                            .padding(0.05);
-
-                        const yScale = d3.scaleLinear()
-                            .domain([0,710])
-                            .range([chartHeight_bar, 0]);
-
-                        console.log(species);
-
-
-                        let leftAxis = d3.axisLeft(yScale);
-                        bar.append('g')
-                            .attr('class', 'axis')
-                            .attr('transform', `translate(${margins_bar.left - 10},${margins_bar.top})`)
-                            .call(leftAxis);
-
-                        let leftGridlines = d3.axisLeft(yScale)
-                            .tickSize(-chartWidth_bar - 10)
-                            .tickFormat('');
-
-                        bar.append('g')
-                            .attr('class', 'gridlines')
-                            .attr('transform', `translate(${margins_bar.left - 10},${margins_bar.top})`)
-                            .call(leftGridlines);
-
-
-                            
-
-                        const colorScale = d3.scaleOrdinal()
-                                                .domain(['DPQ','Private'])
-                                                .range(['Blue','Orange']);
-                        chartArea_bar.selectAll('rect.bar').data( total_count )
-                                .join('rect').attr('class','bar_private')
-                                .attr("fill", 'steelblue')
-                                .attr("x", d => xScale(d.qspecies))
-                                .attr("y", d => yScale(d.private))
-                                .attr("height", d => yScale(0) - yScale(d.private))
-                                .attr("width", xScale.bandwidth());
-
-                        chartArea_bar.selectAll('rect.bar').data( total_count )
-                                .join('rect').attr('class','bar_dpw')
-                                .attr("fill", 'orange')
-                                .attr("x", d => xScale(d.qspecies))
-                                .attr("y", d => yScale(d.total))
-                                .attr("height", d => yScale(d.private) - yScale(d.total))
-                                .attr("width", xScale.bandwidth())
-                                .attr("text",d => d.species)
-                        
-                        chartArea_bar.selectAll('text').data( total_count )
-                                .join('text')
-                                .attr('class', 'labels')
-                                .text(d => d.qspecies)
-                                .attr('x', 0)
-                                .attr("y", 0)
-                                .attr('transform', d => `translate(${xScale(d.qspecies) + xScale.bandwidth()/2},${yScale(d.total) - 10}) rotate(-60)`)
-                        
-                        
-
-
-                    }
-                    requestData_bar();
-                </script>
-               
-
-        </p>
+  <div class="container larger">
+    <h4>INFO3300 Schedule</h4>
+    <p>
+      Over the course of the term we will slowly populate this schedule with slides, readings, and activities. These pages are mirrored from the <a href="https://github.com/jeffrz/info3300-fa2022">course GitHub repository</a> to a <a href="https://pages.github.com/">GitHub page</a> using a <a href="https://git-scm.com/book/en/v2/Git-Tools-Submodules">submodule</a>. For helpful links, refer back to the <a href="https://jeffrz.com/info3300/">course home page</a>.
+    </p>
+    <p>
+      We will engage in a number of different classroom activities throughout the term. Please refer to this legend:
+      
+      <table id="legend">
+        <tr>
+          <td><span class="lecture">In-person lecture day:</span></td>
+          <td><span class="coding">In-person coding day:</span></td>
+          <td><span class="sync">Remote-only activity day:</span></td>
+        </tr>
+      </table>
+    </p>
     
-
-        </p>
-    </div>
+    <table class="u-full-width schedule online">
+      <tbody>
+        
+        <!---1 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 1</td>
+          <td colspan="6"> Introduction </td>
+        </tr>
+        <tr>
+          <td>22-Aug</td>
+          <td class="lecture">Introduction</td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/6328700/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=eec70596-b97f-455f-a062-aef900fadfe2">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td>24-Aug</td>
+          <td class="coding"> Javascript (coerced into a snafu) </td>
+          <td> <a href="./prompts/22.08.24.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.08.24.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=1abcff7d-abba-410a-82ef-aefb01266277">Recording</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=69d68b42-cdac-4c18-bfc3-acca01573904">Optional Git tutorial</a>  </td> 
+          <td class="fixed-cell"> HW1 assigned </td> 
+        </tr>
+        <tr>
+          <td>26-Aug</td>
+          <td class="coding"> JS Events & Functions </td>
+          <td> <a href="./prompts/22.08.26.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.08.26.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=d8334223-70cd-4742-80a4-aefd00fc7396">Recording</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=f8df05da-dafa-433a-a916-acd2011fe8f3">Optional web server / code editing tutorial</a> </td>  
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---2 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 2</td>
+          <td colspan="6"> Visual Channels </td>
+        </tr>
+        <tr>
+          <td>29-Aug</td>
+          <td class="coding"> Intro to SVG </td>
+          <td> <a href="./prompts/22.08.29.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.08.29.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=c1494290-4437-4697-a4ee-af0000fce84b">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td>31-Aug</td>
+          <td class="coding"> Intro to d3 </td>
+          <td> <a href="./prompts/22.08.31.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.08.31.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=e1277e28-86da-4251-a135-af0200fbbc2d">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW2 assigned, <br/> HW1 due </td> 
+        </tr>
+        <tr>
+          <td>2-Sep</td>
+          <td class="lecture"> Visual Channels </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/6412470/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=9dacdc28-06ee-4e96-965d-af0400fcc490">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---3 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 3</td>
+          <td colspan="6"> Hello, Chart </td>
+        </tr>
+        <tr>
+          <td>5-Sep</td>
+          <td class="nocls" colspan="6"> -No class- </td>
+        </tr>
+        <tr>
+          <td>7-Sep</td>
+          <td class="coding"> d3 simple bar chart (scales in d3) </td>
+          <td> <a href="./prompts/22.09.07.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.09.07.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=ee1ecf11-4cf8-433f-9b31-af0900fd00f6">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW3 assigned, <br/> HW2 due </td> 
+        </tr>
+        <tr>
+          <td>9-Sep</td>
+          <td class="lecture"> Brief history of datavis </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/6467542/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=f6d59407-4eff-4fa5-845c-af0b013ec5c9">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---4 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 4</td>
+          <td colspan="6"> Scatterplots </td>
+        </tr>
+        <tr>
+          <td>12-Sep</td>
+          <td class="coding"> Make-up day & <br/> d3 basic scatterplot (importing data) </td>
+          <td> <a href="./prompts/22.09.12.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.09.12.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=e1eb6ebb-c415-4d02-9f3c-af0e00fbc399">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> HW4 assigned</td>  
+        </tr>
+        <tr>
+          <td>14-Sep</td>
+          <td class="coding"> d3 basic scatterplot (continued) </td>
+          <td> <a href="./prompts/22.09.12.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.09.12.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=dde9ecbe-e6c7-4762-bcb1-af1000fd149d">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW3 due, <br/> Project 1 assigned </td> 
+        </tr>
+        <tr>
+          <td>16-Sep</td>
+          <td class="lecture"> Color theory + models </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/6521078/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=ef2c957a-c0cd-4627-8b92-af1200fc1d9a">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> </td>  
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---5 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 5</td>
+          <td colspan="6"> Joins and Shapes </td>
+        </tr>
+        <tr>
+          <td>19-Sep</td>
+          <td class="coding"> d3 joins (old & new style) </td>
+          <td> <a href="./prompts/22.09.19.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.09.19.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=b2a7aa26-cedd-45dd-92b7-af1500fd5a22">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW5 assigned </td> 
+        </tr>
+        <tr>
+          <td>21-Sep</td>
+          <td class="coding"> d3 line plots </td>
+          <td> <a href="./prompts/22.09.21.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.09.21.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=3cb5e40f-15d0-4190-9941-af1700fce6a0">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> HW4 due</td>  
+        </tr>
+        <tr>
+          <td>23-Sep</td>
+          <td class="sync"> Activity - Visualization Brainstorming </td>
+          <td> <!--- <a href="./prompts/22.N.N.htm">Prompt</a> ---> </td>
+          <td> <a href="./notes/22.09.23.activity.htm">Instructions</a> </td>
+          <td class="fixed-cell"> <a href="https://canvas.cornell.edu/courses/44865/external_tools/1346">Zoom Link</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> </td>  
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---6 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 6</td>
+          <td colspan="6"> Advanced Joins </td>
+        </tr>
+        <tr>
+          <td>26-Sep</td>
+          <td class="coding"> d3 interactive bar chart </td>
+          <td> <a href="./prompts/22.09.26.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.09.26.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=6ca5a7ba-54be-42f6-b1bc-af1c013cf7c4">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW6 assigned </td> 
+        </tr>
+        <tr>
+          <td>28-Sep</td>
+          <td class="coding"> d3 lollipop chart </td>
+          <td> <a href="./prompts/22.09.28.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.09.28.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a7b0ad09-3b07-439d-be31-af1e00fbeb19">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW5 due </td> 
+        </tr>
+        <tr>
+          <td>30-Sep</td>
+          <td class="lecture"> Geographic visualizations </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/6665351/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=5b4abf6f-90b2-4017-9f36-af2000fc3fbe">Recording</a> </td>
+          <td class="fixed-cell"> <a href="https://forms.gle/fsGipJA3KTU8iygF6">Survey</a> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---7 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 7</td>
+          <td colspan="6"> Geo Data </td>
+        </tr>
+        <tr>
+          <td>3-Oct</td>
+          <td class="coding"> d3 choropleth (hooray geoJSON) </td>
+          <td> <a href="./prompts/22.10.03.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.10.03.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=9d274369-39de-4868-9d61-af2300fce9d2">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td>5-Oct</td>
+          <td class="coding"> d3 choropleth (adding data) </td>
+          <td> <a href="./prompts/22.10.03.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.10.03.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=f28d2853-3033-49eb-b098-af2500fcd30a">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW6 due </td> 
+        </tr>
+        <tr>
+          <td>6-Oct</td>
+          <td class="nocls" colspan="6"> &nbsp;&nbsp;&nbsp;&nbsp; </td>
+        </tr>
+        <tr>
+          <td>7-Oct</td>
+          <td class="sync"> Activity - Project Critique </td>
+          <td> <!--- <a href="./prompts/22.N.N.htm">Prompt</a> ---> </td>
+          <td> <a href="./notes/22.10.07.activity.htm">Instructions</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.zoom.us/j/93325520231?pwd=Yms0SzJRVlZmaUM3aDFtSHZzSXhHZz09">Zoom Link</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> Project 1 due 11:59pm </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---8 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 8</td>
+          <td colspan="6"> Choropleth Maps cont'd </td>
+        </tr>
+        <tr>
+          <td>10-Oct</td>
+          <td class="nocls" colspan="6"> -No class- </td>
+        </tr>
+        <tr>
+          <td>12-Oct</td>
+          <td class="coding"> d3 choropleth (dots and contours) </td>
+          <td> <a href="./prompts/22.10.12.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.10.12.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=6f444785-4e4a-4d58-be66-af2d010ea867">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> </td>  
+        </tr>
+        <tr>
+          <td>14-Oct</td>
+          <td class="lecture"> Human-Visualization Interaction </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/6780214/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=edb80000-2eb3-4bb0-995d-af2e0102e7d6">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---9 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 9</td>
+          <td colspan="6"> Adding Interactivity </td>
+        </tr>
+        <tr>
+          <td>17-Oct</td>
+          <td class="coding"> d3 pan+zoom </td>
+          <td> <a href="./prompts/22.10.17.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.10.17.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=e10f0d66-5748-4ffb-8d0d-af3100fc75db">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW7 assigned</td> 
+        </tr>
+        <tr>
+          <td>19-Oct</td>
+          <td class="coding"> d3 multitouch </td>
+          <td> <a href="./prompts/22.10.19.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.10.19.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=1eb03f8e-5ca9-490f-9eba-af3300fcaab4">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> Project 2 assigned </td>  
+        </tr>
+        <tr>
+          <td>21-Oct</td>
+          <td class="lecture"> Network Layouts </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/6841135/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=c0dc9348-35c5-4bd4-a831-af3500fd0521">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> </td>  
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---10 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 10</td>
+          <td colspan="6"> Network Diagrams </td>
+        </tr>
+        <tr>
+          <td>24-Oct</td>
+          <td class="coding"> d3 emergent layout (bubbleplots) </td>
+          <td> <a href="./prompts/22.10.24.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.10.24.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=f5b6cd51-7313-46c2-ac04-af3800fb79f2">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW8 assigned </td> 
+        </tr>
+        <tr>
+          <td>26-Oct</td>
+          <td class="coding"> d3 network layouts </td>
+          <td> <a href="./prompts/22.10.26.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.10.26.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=0e90c523-8083-4084-aa2c-af3a00fd222b">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> HW7 due </td>  
+        </tr>
+        <tr>
+          <td>28-Oct</td>
+          <td class="sync"> Activity - Interaction Brainstorm </td>
+          <td> <!--- <a href="./prompts/22.N.N.htm">Prompt</a> ---> </td>
+          <td> <a href="./notes/22.10.28.activity.htm">Instructions</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.zoom.us/j/94668565351?pwd=Y080ZXlmeDBpSFYvVGoxR016b21rUT09">Zoom Link</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> </td>  
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---11 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 11</td>
+          <td colspan="6"> Recreating Homefinder </td>
+        </tr>
+        <tr>
+          <td>31-Oct</td>
+          <td class="coding"> client/server patterns </td>
+          <td> <a href="./homefinder/serv.py">Server PY</a> </td>
+          <td> <a href="//github.com/jeffrz/info3300-fa2022/tree/master/homefinder">Repo Dir</a> </td>
+          <td class="fixed-cell"><a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=b8ade384-c0fa-4f6d-9bb3-af3f0143a77e">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> </td>  
+        </tr>
+        <tr>
+          <td>2-Nov</td>
+          <td class="coding"> d3 homefinder (query manip) </td>
+          <td> <!--- <a href="./prompts/22.N.N.htm">Prompt</a> ---> </td>
+          <td> <a href="//github.com/jeffrz/info3300-fa2022/tree/master/homefinder">Repo Dir</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=fab6352b-9533-4919-a9be-af4100fd0ec5">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW9 assigned <br/> HW8 due </td> 
+        </tr>
+        <tr>
+          <td>4-Nov</td>
+          <td class="lecture"> Visual Perception </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/6961357/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=b83a28db-4d1c-4a2a-a5c2-af4300fcf11d">Recording</a> </td>
+          <td class="fixed-cell"> <a href="https://forms.gle/PNRsBSvQoVZhZ59R7">Survey</a> </td>
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---12 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 12</td>
+          <td colspan="6"> Homefinder cont'd </td>
+        </tr>
+        <tr>
+          <td>7-Nov</td>
+          <td class="coding"> d3 homefinder (direct manip) </td>
+          <td> <!--- <a href="./prompts/22.N.N.htm">Prompt</a> ---> </td>
+          <td> <a href="//github.com/jeffrz/info3300-fa2022/tree/master/homefinder">Repo Dir</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=f274b605-07b3-458c-bdad-af46010d73a5">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td>9-Nov</td>
+          <td class="coding"> d3 density vis (contour, density) </td>
+          <td> <a href="./prompts/22.11.09.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.11.09.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=9d28711d-d04f-4b00-acfd-af48010d3c8d">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> HW9 due </td>  
+        </tr>
+        <tr>
+          <td>11-Nov</td>
+          <td class="sync"> Activity - Project Critique </td>
+          <td> <!--- <a href="./prompts/22.N.N.htm">Prompt</a> ---> </td>
+          <td> <a href="./notes/22.11.11.activity.htm">Instructions</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.zoom.us/j/92075517532?pwd=bTQ3RUk1bFZla1NZMHhwSWlhb1ByZz09">Zoom Link</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---13 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 13</td>
+          <td colspan="6"> Drawing without SVG </td>
+        </tr>
+        <tr>
+          <td>14-Nov</td>
+          <td class="coding"> d3 raster vis </td>
+          <td> <a href="./prompts/22.11.14.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.11.14.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=3058ef83-f4a7-4c53-8bbe-af4d010cb89f">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW10 assigned, <br/> Project 3 assigned </td> 
+        </tr>
+        <tr>
+          <td>15-Nov</td>
+          <td class="nocls" colspan="6"> &nbsp;&nbsp;&nbsp;&nbsp;Project 2 due </td>
+        </tr>
+        <tr>
+          <td>16-Nov</td>
+          <td class="coding"> d3 raster interactivity </td>
+          <td> <a href="./prompts/22.11.16.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.11.16.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=ff8200a3-2471-494d-94de-af4f0159b0d6">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td>18-Nov</td>
+          <td class="coding"> 3D d3 day (a.k.a. 3-don't) </td>
+          <td> <a href="./prompts/22.11.18.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.11.18.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=b8c052df-9e38-4047-b375-af51010e434f">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---14 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 14</td>
+          <td colspan="6"> Animation Principles </td>
+        </tr>
+        <tr>
+          <td>21-Nov</td>
+          <td class="lecture"> Animations & narrative </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/7118285/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=b358db8f-7380-4772-a8e9-af54010d90a7">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> HW10 due </td> 
+        </tr>
+        <tr>
+          <td>23-Nov</td>
+          <td class="nocls" colspan="6"> -No class- </td>
+        </tr>
+        <tr>
+          <td>25-Nov</td>
+          <td class="nocls" colspan="6"> -No class- </td>
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        <!---15 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 15</td>
+          <td colspan="6"> Challenging Visualizations / Make-up days </td>
+        </tr>
+        <tr>
+          <td>28-Nov</td>
+          <td class="coding"> d3 chord diagrams </td>
+          <td> <a href="./prompts/22.11.28.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.11.28.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=763e41ac-518b-4d63-9154-af5b010d6864">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td>30-Nov</td>
+          <td class="coding"> d3 text vis </td>
+          <td> <a href="./prompts/22.11.30.htm">Prompt</a> </td>
+          <td> <a href="./notes/22.11.30.notes.htm">Notes</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=1c276aaa-c26c-4f5e-8b78-af5d010d64f2">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td>2-Dec</td>
+          <td class="sync"> Activity - Designing Under Constraints </td>
+          <td> <!--- <a href="./prompts/22.N.N.htm">Prompt</a> ---> </td>
+          <td> <a href="./notes/22.12.02.activity.htm">Instructions</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.zoom.us/j/99912015427?pwd=L3plc1BqNmQ2NnExM01GZklkOE1Fdz09">Zoom Link</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td>
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        <!---16 - - - - - - - - - - - - - - - - - - - - - - - - - - - --->     
+        <tr class="week-label">
+          <td>Week 16</td>
+          <td colspan="6"> Wrap up </td>
+        </tr>
+        <tr>
+          <td>5-Dec</td>
+          <td class="lecture"> Physicalization & Access </td>
+          <td></td>
+          <td> <a href="https://canvas.cornell.edu/files/7214835/download?download_frd=1">Slides</a> </td>
+          <td class="fixed-cell"> <a href="https://cornell.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=764ca740-ac39-4a34-a055-af620170b7af">Recording</a> </td>
+          <td class="fixed-cell"> <!--- > <a href="URL_GOES_HERE">Optional</a> ---> </td> 
+          <td class="fixed-cell"> </td> 
+        </tr>
+        <tr>
+          <td>6-Dec</td>
+          <td class="nocls" colspan="6"> INFO/CS 3300 Final Exam released by end of day </td>
+        </tr>
+        <tr>
+          <td colspan="7"></td>
+        </tr>    
+        
+        
+        
+        
+        <!--- EXAM ------->
+        <tr class="week-label">
+          <td colspan="7">Final Exam/Project Submission</td>
+        </tr>
+        <tr>
+          <td>For students in INFO/CS 3300</td>
+          <td colspan="3">Final take-home exam</td>
+          <td colspan="3">Due Dec. 14 @ 12:00 PM</td>
+        </tr> 
+        <tr>
+          <td>For students in INFO 5100</td>
+          <td colspan="3">Complete Project 3</td>
+          <td colspan="3">Due Dec. 14 @ 12:00 PM</td>
+        </tr>    
+        
+        
+      </tbody>
+    </table>
+    
+  </div>
+  
 </body>
-
 </html>
